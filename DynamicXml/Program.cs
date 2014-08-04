@@ -12,20 +12,9 @@ namespace DynamicXml
         private static void Main(string[] args)
         {
             var thierry = new Person();
-            //var serializer = new XmlSerializer(typeof(Person));
-            ////var dThierry2 = thierry.ToDynamic() as dynamic;
-            //var dThierry = (dynamic)thierry;
-            //dThierry.Age = "Gotcha";
-
             Type t = ProperyBuilder<Person>.BuildDynamicTypeWithProperties();
 
             var tSerializer = new XmlSerializer(t);
-
-            //using (var stringWriter = new StringWriter())
-            //{
-            //    serializer.Serialize(stringWriter, dThierry);
-            //    Console.WriteLine(stringWriter.ToString());
-            //}
         }
     }
 

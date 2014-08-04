@@ -23,14 +23,28 @@ namespace DynamicXml
 
             TypeBuilder typeBuilder = moduleBuilder.DefineType("_" + targetType.Name, TypeAttributes.Public);
 
-            //List<FieldBuilder> fieldBuilders = new List<FieldBuilder>();
-            //List<PropertyBuilder> propertyBuilders = new List<PropertyBuilder>();
             Dictionary<string, string> toStringArguments = new Dictionary<string,string>();
-            //foreach (var targetField in targetType.GetFields())
-            //{
-                
-            //    fieldBuilders.Add(fieldBuilder);
-            //}
+
+
+            // STRATEGY TO GET IT GOING FROM HERE :
+            // 1. We make a new type from T. This new type (let call it τ) will effectively extract all public fields/properties of T and
+            // add them upon τ. Because the XmlSerializer already considers only public fields and properties with Getter and Setter, no
+            // information is lost in the process.
+            // 2. All members aforementioned are kept as is, except with those decorated by the ToXmlString Attribute. This attribute is here
+            // to cast the field to a string. For a example if we have :
+            //  [XmlToString("yyyy-MM")]
+            //  DateTime MyCustomeDate { get; set; }
+            // we want to make sure that <MyCustomDate>...</MyCustomDate> will be outputted using the attribute arguments.
+            // So τ shall redefine the type of members decorated as string.
+            // 3. This means that when a T instance is cast to τ, then we must check members with XmlToStringAttribute and cast them 
+            // at this moment. 
+            // (4.) We  would also like to keep all other attributes defined in the class. For what I can tell, this can only be done 
+            // using something like : 
+            // fieldBuilder.SetCustomAttribute(attributeData.Constructor, new byte[] { 0x01, 0x00, 0x07, ...
+            // and define the correct byte array that matches the existing attribute.. Easy enough, but for now, let's concentrate
+            // on the points described above.
+            // 5. Also, all of this should be wrapped in a neat API hiding the custom serializer, custom classes, custom everything. 
+            // All of it should stay seamless.
 
             foreach (var targetProperty in targetType.GetProperties())
             {
@@ -83,25 +97,3 @@ namespace DynamicXml
         }
     }
 }
-
-//PropertyBuilder propBuilder = typeBuilder.DefineProperty(targetProperty.Name, targetProperty.Attributes, newPropType, null);
-
-//MethodAttributes getSetAttr = MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.HideBySig;
-
-//MethodBuilder getAccessorBuilder = typeBuilder.DefineMethod("get_" + targetProperty.Name, getSetAttr, newPropType, Type.EmptyTypes);
-
-//ILGenerator getILGenerator = getAccessorBuilder.GetILGenerator();
-//getILGenerator.Emit(OpCodes.Ldarg_0);
-//getILGenerator.Emit(OpCodes.Ldfld, fieldBuilder);
-//getILGenerator.Emit(OpCodes.Ret);
-
-//MethodBuilder setAccessorBuilder = typeBuilder.DefineMethod("set_" + targetProperty.Name, getSetAttr, null, new Type[] { newPropType });
-
-//ILGenerator setILGenerator = setAccessorBuilder.GetILGenerator();
-//setILGenerator.Emit(OpCodes.Ldarg_0);
-//setILGenerator.Emit(OpCodes.Ldarg_1);
-//setILGenerator.Emit(OpCodes.Stfld, fieldBuilder);
-//setILGenerator.Emit(OpCodes.Ret);
-
-//propBuilder.SetGetMethod(getAccessorBuilder);
-//propBuilder.SetSetMethod(setAccessorBuilder);
