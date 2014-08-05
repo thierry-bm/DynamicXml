@@ -6,6 +6,7 @@ using System.Reflection.Emit;
 using System.Text;
 using System.Threading;
 using System.Xml.Serialization;
+using System.IO;
 
 namespace DynamicXml
 {
@@ -48,11 +49,15 @@ namespace DynamicXml
                     newFieldType = typeof(string);
                 }
 
-                FieldBuilder fieldBuilder = typeBuilder.DefineField(newFieldName, newFieldType, FieldAttributes.Public);
+                typeBuilder.DefineField(newFieldName, newFieldType, FieldAttributes.Public);
             }
 
             DerivedType = typeBuilder.CreateType();
             StaticSerializer = new XmlSerializer(DerivedType);
         }
+
+		public void Serialize(Stream stream, T t)
+		{
+		}
     }
 }
