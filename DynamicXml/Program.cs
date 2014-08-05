@@ -11,6 +11,8 @@ namespace DynamicXml
     {
         private static void Main(string[] args)
         {
+            var dSerializer = new DynamicXmlSerializer<Person>();
+
             var thierry = new Person();
             Type t = ProperyBuilder<Person>.BuildDynamicTypeWithProperties();
 

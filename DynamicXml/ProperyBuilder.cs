@@ -88,12 +88,5 @@ namespace DynamicXml
             Type returnType = typeBuilder.CreateType();
             return returnType;
         }
-
-        public static object CreateInstance<U>(Type t, U from)
-        {
-            var instance = Activator.CreateInstance(t);
-
-            return instance;
-        }
     }
 }
