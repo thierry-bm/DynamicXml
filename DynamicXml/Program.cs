@@ -13,10 +13,10 @@ namespace DynamicXml
         {
             var dSerializer = new DynamicXmlSerializer<Person>();
 
-            var thierry = new Person();
-            Type t = ProperyBuilder<Person>.BuildDynamicTypeWithProperties();
-
-            var tSerializer = new XmlSerializer(t);
+//            var thierry = new Person();
+//            Type t = ProperyBuilder<Person>.BuildDynamicTypeWithProperties();
+//
+//            var tSerializer = new XmlSerializer(t);
         }
     }
 
