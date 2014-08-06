@@ -23,11 +23,11 @@ Unfortunately some double fields would have their last digit swapped between
 each session, due to whatever reason a hardware dude could probably explain. 
 For example instead of having 
 
-    2.2000000000001
+    <myDouble>2.2000000000001</myDouble>
 
 Maybe it would have turned out as 
 
-    2.2000000000004
+    <myDouble>2.2000000000004</myDouble>
 
 As far as I know, that's a processor problem, but yet the tests would here fail because, well
 `1` and `4` are not the same byte, when string-compared.
