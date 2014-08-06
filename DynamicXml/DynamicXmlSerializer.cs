@@ -1,16 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
-using System.Text;
 using System.Threading;
 using System.Xml.Serialization;
-using System.IO;
 
 namespace DynamicXml
 {
-	public class DynamicXmlSerializer<T> where T : new()
+    public class DynamicXmlSerializer<T> where T : new()
     {
         private static AssemblyBuilder AssemblyBuilder { get; set; }
         private static ModuleBuilder ModuleBuilder { get; set; }
@@ -40,7 +39,7 @@ namespace DynamicXml
             {
                 Type newFieldType = targetProperty.PropertyType;
                 string newFieldName = targetProperty.Name;
-                
+
                 var attributesList = targetProperty.GetCustomAttributes(true).ToList();
                 if (attributesList.Exists(attribute => attribute as XmlToStringAttribute != null))
                 {
@@ -56,27 +55,27 @@ namespace DynamicXml
             _staticSerializer = new XmlSerializer(_derivedType);
         }
 
-		public void Serialize(TextWriter textWriter, T t)
-		{
-			var derivedInstance = Activator.CreateInstance(_derivedType); //Hence the need of where T: new()
+        public void Serialize(TextWriter textWriter, T t)
+        {
+            var derivedInstance = Activator.CreateInstance(_derivedType); //Hence the need of where T: new()
 
-			foreach (var derivedField in _derivedType.GetFields())
-			{
-				var fieldName = derivedField.Name;
-				dynamic primaryValue = typeof(T).GetProperty(fieldName).GetValue(t, null);
+            foreach (var derivedField in _derivedType.GetFields())
+            {
+                var fieldName = derivedField.Name;
+                dynamic primaryValue = typeof(T).GetProperty(fieldName).GetValue(t, null);
 
-				if (!_toStringArguments.ContainsKey (fieldName))
-				{
-					derivedField.SetValue (derivedInstance, primaryValue);
-				}
-				else
-				{
-					var toStringArgument = _toStringArguments[fieldName];
-					derivedField.SetValue(derivedInstance, primaryValue.ToString(toStringArgument));
-				}
-			}
+                if (!_toStringArguments.ContainsKey(fieldName))
+                {
+                    derivedField.SetValue(derivedInstance, primaryValue);
+                }
+                else
+                {
+                    var toStringArgument = _toStringArguments[fieldName];
+                    derivedField.SetValue(derivedInstance, primaryValue.ToString(toStringArgument));
+                }
+            }
 
-			_staticSerializer.Serialize (textWriter, derivedInstance);
-		}
+            _staticSerializer.Serialize(textWriter, derivedInstance);
+        }
     }
 }
