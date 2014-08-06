@@ -10,7 +10,7 @@ using System.IO;
 
 namespace DynamicXml
 {
-    public class DynamicXmlSerializer<T>
+	public class DynamicXmlSerializer<T> where T : new()
     {
         private static AssemblyBuilder AssemblyBuilder { get; set; }
         private static ModuleBuilder ModuleBuilder { get; set; }
@@ -56,8 +56,9 @@ namespace DynamicXml
             StaticSerializer = new XmlSerializer(DerivedType);
         }
 
-		public void Serialize(Stream stream, T t)
+		public void Serialize(TextWriter textWriter, T t)
 		{
+			var derivedInstance = Activator.CreateInstance(DerivedType); //Hence the need of where T: new()
 		}
     }
 }
