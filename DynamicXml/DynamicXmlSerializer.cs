@@ -15,9 +15,9 @@ namespace DynamicXml
         private static AssemblyBuilder AssemblyBuilder { get; set; }
         private static ModuleBuilder ModuleBuilder { get; set; }
 
-        private Dictionary<string, string> ToStringArguments { get; set; }
-        private Type DerivedType { get; set; }
-        public XmlSerializer StaticSerializer { get; set; }
+        private Dictionary<string, string> _toStringArguments { get; set; }
+        private Type _derivedType { get; set; }
+        private XmlSerializer _staticSerializer { get; set; }
 
         static DynamicXmlSerializer()
         {
@@ -31,7 +31,7 @@ namespace DynamicXml
 
         public DynamicXmlSerializer()
         {
-            ToStringArguments = new Dictionary<string, string>();
+            _toStringArguments = new Dictionary<string, string>();
 
             var targetType = typeof(T);
             TypeBuilder typeBuilder = ModuleBuilder.DefineType("_" + targetType.Name, TypeAttributes.Public); // FIXME Ici si on instancie plusieurs fois avec le meme type on est foutu.
@@ -45,20 +45,38 @@ namespace DynamicXml
                 if (attributesList.Exists(attribute => attribute as XmlToStringAttribute != null))
                 {
                     var xmlToStringAttribute = (XmlToStringAttribute)attributesList.First(attribute => attribute as XmlToStringAttribute != null);
-                    ToStringArguments[newFieldName] = xmlToStringAttribute.Argument;
+                    _toStringArguments[newFieldName] = xmlToStringAttribute.Argument;
                     newFieldType = typeof(string);
                 }
 
                 typeBuilder.DefineField(newFieldName, newFieldType, FieldAttributes.Public);
             }
 
-            DerivedType = typeBuilder.CreateType();
-            StaticSerializer = new XmlSerializer(DerivedType);
+            _derivedType = typeBuilder.CreateType();
+            _staticSerializer = new XmlSerializer(_derivedType);
         }
 
 		public void Serialize(TextWriter textWriter, T t)
 		{
-			var derivedInstance = Activator.CreateInstance(DerivedType); //Hence the need of where T: new()
+			var derivedInstance = Activator.CreateInstance(_derivedType); //Hence the need of where T: new()
+
+			foreach (var derivedField in _derivedType.GetFields())
+			{
+				var fieldName = derivedField.Name;
+				dynamic primaryValue = typeof(T).GetProperty(fieldName).GetValue(t, null);
+
+				if (!_toStringArguments.ContainsKey (fieldName))
+				{
+					derivedField.SetValue (derivedInstance, primaryValue);
+				}
+				else
+				{
+					var toStringArgument = _toStringArguments[fieldName];
+					derivedField.SetValue(derivedInstance, primaryValue.ToString(toStringArgument));
+				}
+			}
+
+			_staticSerializer.Serialize (textWriter, derivedInstance);
 		}
     }
 }

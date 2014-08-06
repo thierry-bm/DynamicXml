@@ -22,6 +22,7 @@ namespace DynamicXml
 			Age = 23 + Math.PI;
 			Height = 5 + 10.0 / 12.0;
 			Name = "Thierry";
+			Date = DateTime.Now;
 		}
 	}
 }
