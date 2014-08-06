@@ -34,7 +34,7 @@ namespace DynamicXml
             _toStringArguments = new Dictionary<string, string>();
 
             var targetType = typeof(T);
-            TypeBuilder typeBuilder = ModuleBuilder.DefineType("_" + targetType.Name, TypeAttributes.Public); // FIXME Ici si on instancie plusieurs fois avec le meme type on est foutu.
+            TypeBuilder typeBuilder = ModuleBuilder.DefineType(targetType.Name, TypeAttributes.Public); // FIXME Ici si on instancie plusieurs fois avec le meme type on est foutu.
 
             foreach (var targetProperty in targetType.GetProperties())
             {
