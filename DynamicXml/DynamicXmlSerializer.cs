@@ -73,6 +73,7 @@ namespace DynamicXml
             _staticSerializer.Serialize(textWriter, derivedInstance);
         }
 
+        // TODO Please cleanup a bit. This is a serious mess.
         private object CreateDerivedInstance(object instance, Type derivedType, Dictionary<string, string> toStringArguments)
         {
             if (IsBuiltinType(derivedType))
