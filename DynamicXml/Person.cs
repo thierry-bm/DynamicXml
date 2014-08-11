@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Xml.Serialization;
 
 namespace DynamicXml
@@ -19,6 +21,8 @@ namespace DynamicXml
 
         public SubObject MySubObject { get; set; }
 
+        //public List<SubObject> MySubObjects { get; set; }
+
         public Person()
         {
             Age = 23 + Math.PI;
@@ -26,6 +30,12 @@ namespace DynamicXml
             Name = "Thierry";
             Date = DateTime.Now;
             MySubObject = new SubObject();
+            //MySubObjects = new List<SubObject>();
+
+            //foreach (var _ in Enumerable.Range(0, 10))
+            //{
+            //    MySubObjects.Add(new SubObject());
+            //}
         }
     }
 

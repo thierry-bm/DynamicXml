@@ -13,9 +13,8 @@ namespace DynamicXml
     {
         private static AssemblyBuilder AssemblyBuilder { get; set; }
         private static ModuleBuilder ModuleBuilder { get; set; }
+        private static Dictionary<Type, Dictionary<string, string>> _arguments { get; set; }
 
-        private Dictionary<string, string> _toStringArguments { get; set; }
-        private Dictionary<Type, Dictionary<string, string>> _arguments { get; set; }
         private Type _derivedType { get; set; }
         private XmlSerializer _staticSerializer { get; set; }
 
@@ -27,12 +26,11 @@ namespace DynamicXml
 
             AssemblyBuilder = domain.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.RunAndSave);
             ModuleBuilder = AssemblyBuilder.DefineDynamicModule(assemblyName.Name, assemblyName + ".dll");
+            _arguments = new Dictionary<Type, Dictionary<string, string>>();
         }
 
         public DynamicXmlSerializer()
         {
-            _arguments = new Dictionary<Type, Dictionary<string, string>>();
-
             _derivedType = DerivedType(typeof(T));
             _staticSerializer = new XmlSerializer(_derivedType);
         }
@@ -42,8 +40,13 @@ namespace DynamicXml
             if (IsBuiltinType(t))
                 return t;
 
-            var toStringArguments = new Dictionary<string, string>();
+            var types = ModuleBuilder.GetTypes().ToList();
+            var hypotheticallyExistingType = types.FirstOrDefault(type => type.Name == t.Name);
+            if (hypotheticallyExistingType != null)
+                return hypotheticallyExistingType;
+
             TypeBuilder typeBuilder = ModuleBuilder.DefineType(t.Name, TypeAttributes.Public);
+            var toStringArguments = new Dictionary<string, string>();
 
             foreach (var targetProperty in t.GetProperties())
             {
