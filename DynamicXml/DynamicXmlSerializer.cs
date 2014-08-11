@@ -15,6 +15,7 @@ namespace DynamicXml
         private static ModuleBuilder ModuleBuilder { get; set; }
 
         private Dictionary<string, string> _toStringArguments { get; set; }
+        private Dictionary<Type, Dictionary<string, string>> _arguments { get; set; }
         private Type _derivedType { get; set; }
         private XmlSerializer _staticSerializer { get; set; }
 
@@ -30,12 +31,21 @@ namespace DynamicXml
 
         public DynamicXmlSerializer()
         {
-            _toStringArguments = new Dictionary<string, string>();
+            _arguments = new Dictionary<Type, Dictionary<string, string>>();
 
-            var targetType = typeof(T);
-            TypeBuilder typeBuilder = ModuleBuilder.DefineType(targetType.Name, TypeAttributes.Public); // FIXME Ici si on instancie plusieurs fois avec le meme type on est foutu.
+            _derivedType = DerivedType(typeof(T));
+            _staticSerializer = new XmlSerializer(_derivedType);
+        }
 
-            foreach (var targetProperty in targetType.GetProperties())
+        public Type DerivedType(Type t)
+        {
+            if (IsBuiltinType(t))
+                return t;
+
+            var toStringArguments = new Dictionary<string, string>();
+            TypeBuilder typeBuilder = ModuleBuilder.DefineType(t.Name, TypeAttributes.Public);
+
+            foreach (var targetProperty in t.GetProperties())
             {
                 Type newFieldType = targetProperty.PropertyType;
                 string newFieldName = targetProperty.Name;
@@ -44,38 +54,58 @@ namespace DynamicXml
                 if (attributesList.Exists(attribute => attribute as XmlToStringAttribute != null))
                 {
                     var xmlToStringAttribute = (XmlToStringAttribute)attributesList.First(attribute => attribute as XmlToStringAttribute != null);
-                    _toStringArguments[newFieldName] = xmlToStringAttribute.Argument;
+                    toStringArguments[newFieldName] = xmlToStringAttribute.Argument;
                     newFieldType = typeof(string);
                 }
 
-                typeBuilder.DefineField(newFieldName, newFieldType, FieldAttributes.Public);
+                typeBuilder.DefineField(newFieldName, DerivedType(newFieldType), FieldAttributes.Public);
             }
 
-            _derivedType = typeBuilder.CreateType();
-            _staticSerializer = new XmlSerializer(_derivedType);
+            Type result = typeBuilder.CreateType();
+            _arguments[result] = toStringArguments;
+
+            return result;
         }
 
-        public void Serialize(TextWriter textWriter, T t)
+        public void Serialize(TextWriter textWriter, T instance)
         {
-            var derivedInstance = Activator.CreateInstance(_derivedType); //Hence the need of where T: new()
+            object derivedInstance = CreateDerivedInstance(instance, _derivedType, _arguments[_derivedType]);
+            _staticSerializer.Serialize(textWriter, derivedInstance);
+        }
 
-            foreach (var derivedField in _derivedType.GetFields())
+        private object CreateDerivedInstance(object instance, Type derivedType, Dictionary<string, string> toStringArguments)
+        {
+            if (IsBuiltinType(derivedType))
+                return instance;
+
+            var result = Activator.CreateInstance(derivedType);
+            
+            foreach (var derivedField in derivedType.GetFields())
             {
                 var fieldName = derivedField.Name;
-                dynamic primaryValue = typeof(T).GetProperty(fieldName).GetValue(t, null);
+                var fieldType = derivedField.FieldType;
+                dynamic subInstance = instance.GetType().GetProperty(fieldName).GetValue(instance, null);
 
-                if (!_toStringArguments.ContainsKey(fieldName))
+                if (!toStringArguments.ContainsKey(fieldName))
                 {
-                    derivedField.SetValue(derivedInstance, primaryValue);
+                    if (IsBuiltinType(fieldType))
+                    {
+                        derivedField.SetValue(result, subInstance);
+                    }
+                    else
+                    {
+                        object derivedSubInstance = CreateDerivedInstance(subInstance, fieldType, _arguments[fieldType]);
+                        derivedField.SetValue(result, derivedSubInstance);
+                    }
                 }
                 else
                 {
-                    var toStringArgument = _toStringArguments[fieldName];
-                    derivedField.SetValue(derivedInstance, primaryValue.ToString(toStringArgument));
-                }
+                    var toStringArgument = toStringArguments[fieldName];
+                    derivedField.SetValue(result, subInstance.ToString(toStringArgument));
+                }                
             }
 
-            _staticSerializer.Serialize(textWriter, derivedInstance);
+            return result;
         }
 
         private static bool IsBuiltinType(Type t)
