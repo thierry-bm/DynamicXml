@@ -14,6 +14,10 @@ namespace DynamicXml
         private static AssemblyBuilder AssemblyBuilder { get; set; }
         private static ModuleBuilder ModuleBuilder { get; set; }
         private static Dictionary<Type, Dictionary<string, string>> _arguments { get; set; }
+        private static List<Type> ExistingTypes
+        {
+            get { return ModuleBuilder.GetTypes().ToList(); }
+        }
 
         private Type _derivedType { get; set; }
         private XmlSerializer _staticSerializer { get; set; }
@@ -40,10 +44,18 @@ namespace DynamicXml
             if (IsBuiltinType(t))
                 return t;
 
-            var types = ModuleBuilder.GetTypes().ToList();
-            var hypotheticallyExistingType = types.FirstOrDefault(type => type.Name == t.Name);
+            var hypotheticallyExistingType = ExistingTypes.FirstOrDefault(type => type.Name == t.Name);
             if (hypotheticallyExistingType != null)
                 return hypotheticallyExistingType;
+
+            var iEnumerableInterface = t.GetInterfaces().FirstOrDefault(i => i.GetGenericTypeDefinition() == typeof(IEnumerable<>));
+            if (iEnumerableInterface != null)
+            {
+                var listedT = iEnumerableInterface.GetGenericArguments()[0];
+                var derivedListedT = DerivedType(listedT);
+                var listResult = typeof(List<>).MakeGenericType(new[] { derivedListedT }); // Just like properties are turned to fields, any IEnumerable will be cast to List<>
+                return listResult;
+            }
 
             TypeBuilder typeBuilder = ModuleBuilder.DefineType(t.Name, TypeAttributes.Public);
             var toStringArguments = new Dictionary<string, string>();
