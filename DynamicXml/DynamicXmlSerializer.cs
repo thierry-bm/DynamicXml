@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -107,6 +108,23 @@ namespace DynamicXml
                     if (IsBuiltinType(fieldType))
                     {
                         derivedField.SetValue(result, subInstance);
+                        continue;
+                    }
+
+                    var iEnumerableInterface = fieldType.GetInterfaces().FirstOrDefault(i => i.GetGenericTypeDefinition() == typeof(IEnumerable<>));
+                    if (iEnumerableInterface != null)
+                    { 
+                        var derivedListedT = iEnumerableInterface.GetGenericArguments()[0];
+                        var derivedList = typeof(List<>).MakeGenericType(new[] { derivedListedT });
+                        var newList = Activator.CreateInstance(derivedList);
+
+                        foreach (var item in (IEnumerable)subInstance)
+                        {
+                            object derivedSubInstance = CreateDerivedInstance(item, derivedListedT, _arguments[derivedListedT]);
+                            fieldType.GetMethod("Add").Invoke(newList, new[] { derivedSubInstance });
+                        }
+
+                        derivedField.SetValue(result, newList);
                     }
                     else
                     {
@@ -127,6 +145,11 @@ namespace DynamicXml
         private static bool IsBuiltinType(Type t)
         {
             return (t == typeof(object) || Type.GetTypeCode(t) != TypeCode.Object);
+        }
+
+        private static bool IsIenumerable(Type t)
+        {
+            return t.GetInterfaces().FirstOrDefault(i => i.GetGenericTypeDefinition() == typeof(IEnumerable<>)) != null;
         }
     }
 }
