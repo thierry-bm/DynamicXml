@@ -77,5 +77,10 @@ namespace DynamicXml
 
             _staticSerializer.Serialize(textWriter, derivedInstance);
         }
+
+        private static bool IsBuiltinType(Type t)
+        {
+            return (t == typeof(object) || Type.GetTypeCode(t) != TypeCode.Object);
+        }
     }
 }
