@@ -46,19 +46,94 @@ What to do then ?
 The power of `System.Reflection.Emit`
 -------------------------------------
 I wanted a simple API, something working with attributes, for example with the
-following class
+following classes
 
 ```C#
-class Person
+public class Person
 {
-    public int Age { get; set; }
+    [XmlElement("ageGoesHere")]
+    public double Age { get; set; }
+
+    [XmlElement("heightGoesThere")]
+    [XmlToString("N2")]
+    public double Height { get; set; }
+
+    [XmlAttribute("pleaseGiveMeAName")]
+    public string Name { get; set; }
 
     [XmlToString("yyyy-MM")]
-    public DateTime DateOfBirth { get; set; }
+    public DateTime Date { get; set; }
 
-    [XmlToString("N2")]
-    public double Happiness { get; set; }
+    public SubObject MySubObject { get; set; }
+
+    public List<SubObject> MySubObjects { get; set; }
+
+    public Person()
+    {
+        Age = 23 + Math.PI;
+        Height = 5 + 10.0 / 12.0;
+        Name = "Thierry";
+        Date = DateTime.Now;
+        MySubObject = new SubObject();
+        MySubObjects = new List<SubObject>();
+
+        foreach (var _ in Enumerable.Range(0, 3))
+        {
+            MySubObjects.Add(new SubObject());
+        }
+    }
 }
+
+public class SubObject
+{
+    [XmlToString("N4")]
+    public double A { get; set; }
+
+    public int B { get; set; }
+
+    [XmlToString("yyyy-MM")]
+    public DateTime C { get; set; }
+
+    public SubObject()
+    {
+        A = 56.156465451;
+        B = 8;
+        C = new DateTime(2001, 09, 11);
+    }
+}
+```
+
+will be deserialize to the following :
+
+```xml
+<?xml version="1.0" encoding="ibm850"?>
+<Person xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" pleaseGiveMeAName="Thierry">
+  <ageGoesHere>26.141592653589793</ageGoesHere>
+  <heightGoesThere>5.83</heightGoesThere>
+  <Date>2014-08</Date>
+  <MySubObject>
+    <A>56.1565</A>S
+    <B>8</B>
+    <C>2001-09</C>
+  </MySubObject>
+  <MySubObjects>
+    <SubObject>
+      <A>56.1565</A>
+      <B>8</B>
+      <C>2001-09</C>
+    </SubObject>
+    <SubObject>
+      <A>56.1565</A>
+      <B>8</B>
+      <C>2001-09</C>
+    </SubObject>
+    <SubObject>
+      <A>56.1565</A>
+      <B>8</B>
+      <C>2001-09</C>
+    </SubObject>
+  </MySubObjects>
+</Person>
 ```
 
 I wanted the `XmlToString` attribute to control how the XML would look like.
@@ -73,8 +148,3 @@ dSerializer.Serialize(Console.Out, person);
 ```
 
 Of course, it's a one-way serializer, ie. you *can't deserialize* (yet !)
-
-Also, it shall eventually support attributes defined within `System.Xml.Serialization`, 
-but that's still a far cry from here.
-
-But, as some say **TBC bitches**.
