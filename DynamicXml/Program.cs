@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Globalization;
+using System.Threading;
 
 namespace DynamicXml
 {
@@ -6,6 +8,8 @@ namespace DynamicXml
     {
         private static void Main(string[] args)
         {
+            Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
+            
             var dSerializer = new DynamicXmlSerializer<Person>();
             var dSerializer2 = new DynamicXmlSerializer<Person>();
 

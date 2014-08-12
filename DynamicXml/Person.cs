@@ -32,7 +32,7 @@ namespace DynamicXml
             MySubObject = new SubObject();
             MySubObjects = new List<SubObject>();
 
-            foreach (var _ in Enumerable.Range(0, 10))
+            foreach (var _ in Enumerable.Range(0, 3))
             {
                 MySubObjects.Add(new SubObject());
             }
