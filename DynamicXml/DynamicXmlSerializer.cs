@@ -67,14 +67,36 @@ namespace DynamicXml
                 string newFieldName = targetProperty.Name;
 
                 var attributesList = targetProperty.GetCustomAttributes(true).ToList();
-                if (attributesList.Exists(attribute => attribute as XmlToStringAttribute != null))
+                var xmlToStringAttribute = (XmlToStringAttribute)attributesList.FirstOrDefault(attribute => attribute as XmlToStringAttribute != null);
+                if (xmlToStringAttribute != null)
                 {
-                    var xmlToStringAttribute = (XmlToStringAttribute)attributesList.First(attribute => attribute as XmlToStringAttribute != null);
                     toStringArguments[newFieldName] = xmlToStringAttribute.Argument;
                     newFieldType = typeof(string);
                 }
 
-                typeBuilder.DefineField(newFieldName, DerivedType(newFieldType), FieldAttributes.Public);
+                FieldBuilder fieldBuilder = typeBuilder.DefineField(newFieldName, DerivedType(newFieldType), FieldAttributes.Public);
+
+                foreach (CustomAttributeData attributeData in targetProperty.GetCustomAttributesData())
+                {
+                    if (!attributeData.AttributeType.FullName.StartsWith("System.Xml.Serialization") || // .net 4.5+ !
+                        attributeData.ConstructorArguments.Count != 1 || 
+                        attributeData.ConstructorArguments.First().ArgumentType != typeof(string))
+                        continue;
+                    
+                    string attCtorArgument = (string)attributeData.ConstructorArguments.First().Value;
+                    // http://download.microsoft.com/download/7/3/3/733AD403-90B2-4064-A81E-01035A7FE13C/MS%20Partition%20II.pdf
+                    // http://stackoverflow.com/a/8142785/152244
+                    List<byte> binaryAttributes = (new byte[] { 0x01, 0x00 }).ToList(); // Prolog
+                    //binaryAttributes.AddRange(new byte[] { 0x01, 0x00 });               // Number of constructors
+                    //binaryAttributes.Add(0x53);                                         // Applied on a field. See http://msdn.microsoft.com/en-us/library/ms231276.aspx
+                    var toUtf8 = System.Text.Encoding.UTF8.GetBytes(attCtorArgument.ToCharArray());
+                    binaryAttributes.Add((byte)attCtorArgument.Length);
+                    binaryAttributes.AddRange(toUtf8);
+                    //binaryAttributes.AddRange(new byte[] { 0x02, 0x61, 0x62 });
+                    binaryAttributes.AddRange(new byte[] { 0x00, 0x00 });
+
+                    fieldBuilder.SetCustomAttribute(attributeData.Constructor, binaryAttributes.ToArray());
+                }
             }
 
             Type result = typeBuilder.CreateType();
@@ -150,6 +172,13 @@ namespace DynamicXml
         private static bool IsIenumerable(Type t)
         {
             return t.GetInterfaces().FirstOrDefault(i => i.GetGenericTypeDefinition() == typeof(IEnumerable<>)) != null;
+        }
+
+        private static byte[] GetBytes(string s)
+        {
+            byte[] bytes = new byte[s.Length * sizeof(char)];
+            System.Buffer.BlockCopy(s.ToCharArray(), 0, bytes, 0, bytes.Length);
+            return bytes;
         }
     }
 }
