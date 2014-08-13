@@ -78,24 +78,31 @@ namespace DynamicXml
 
                 foreach (CustomAttributeData attributeData in targetProperty.GetCustomAttributesData())
                 {
-                    if (!attributeData.AttributeType.FullName.StartsWith("System.Xml.Serialization") || // .net 4.5+ !
-                        attributeData.ConstructorArguments.Count != 1 || 
-                        attributeData.ConstructorArguments.First().ArgumentType != typeof(string))
+                    if (!attributeData.AttributeType.FullName.StartsWith("System.Xml.Serialization") || attributeData.ConstructorArguments.Count >= 2)
                         continue;
-                    
-                    string attCtorArgument = (string)attributeData.ConstructorArguments.First().Value;
+
+                    if (attributeData.ConstructorArguments.Count == 1 && attributeData.ConstructorArguments.First().ArgumentType != typeof(string))
+                        continue;
+
                     // http://download.microsoft.com/download/7/3/3/733AD403-90B2-4064-A81E-01035A7FE13C/MS%20Partition%20II.pdf
                     // http://stackoverflow.com/a/8142785/152244
-                    List<byte> binaryAttributes = (new byte[] { 0x01, 0x00 }).ToList(); // Prolog
-                    //binaryAttributes.AddRange(new byte[] { 0x01, 0x00 });               // Number of constructors
-                    //binaryAttributes.Add(0x53);                                         // Applied on a field. See http://msdn.microsoft.com/en-us/library/ms231276.aspx
-                    var toUtf8 = System.Text.Encoding.UTF8.GetBytes(attCtorArgument.ToCharArray());
-                    binaryAttributes.Add((byte)attCtorArgument.Length);
-                    binaryAttributes.AddRange(toUtf8);
-                    //binaryAttributes.AddRange(new byte[] { 0x02, 0x61, 0x62 });
-                    binaryAttributes.AddRange(new byte[] { 0x00, 0x00 });
+                    // Also see Common Language Infrastructure (CLI) Partition VI Annex B
 
-                    fieldBuilder.SetCustomAttribute(attributeData.Constructor, binaryAttributes.ToArray());
+                    List<byte> binaryAttributes = (new byte[] { 0x01, 0x00 }).ToList(); // Prolog
+                    if (attributeData.ConstructorArguments.Count == 0)
+                    {
+                        binaryAttributes.AddRange(new byte[] { 0x00, 0x00 });
+                        fieldBuilder.SetCustomAttribute(attributeData.Constructor, binaryAttributes.ToArray());
+                    }
+                    else if (attributeData.ConstructorArguments.Count == 1)
+                    {
+                        string attCtorArgument = (string)attributeData.ConstructorArguments.First().Value;
+                        var toUtf8 = System.Text.Encoding.UTF8.GetBytes(attCtorArgument.ToCharArray());
+                        binaryAttributes.Add((byte)attCtorArgument.Length);
+                        binaryAttributes.AddRange(toUtf8);
+
+                        fieldBuilder.SetCustomAttribute(attributeData.Constructor, binaryAttributes.ToArray());
+                    }
                 }
             }
 

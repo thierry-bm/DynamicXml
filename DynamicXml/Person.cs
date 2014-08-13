@@ -14,7 +14,7 @@ namespace DynamicXml
         [XmlToString("N2")]
         public double Height { get; set; }
 
-        [XmlAttribute("pleaseGiveMeAName")]
+        [XmlAttribute]
         public string Name { get; set; }
 
         [XmlToString("yyyy-MM")]
