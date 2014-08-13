@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Threading;
+using System.Xml;
 using System.Xml.Serialization;
 
 namespace DynamicXml
@@ -34,6 +35,24 @@ namespace DynamicXml
             _arguments = new Dictionary<Type, Dictionary<string, string>>();
         }
 
+        public void Serialize(TextWriter textWriter, T instance)
+        {
+            object derivedInstance = CreateDerivedInstance(instance, _derivedType, _arguments[_derivedType]);
+            _staticSerializer.Serialize(textWriter, derivedInstance);
+        }
+
+        public void Serialize(XmlWriter xmlWriter, T instance)
+        {
+            object derivedInstance = CreateDerivedInstance(instance, _derivedType, _arguments[_derivedType]);
+            _staticSerializer.Serialize(xmlWriter, derivedInstance);
+        }
+
+        public void Serialize(Stream stream, T instance)
+        {
+            object derivedInstance = CreateDerivedInstance(instance, _derivedType, _arguments[_derivedType]);
+            _staticSerializer.Serialize(stream, derivedInstance);
+        }
+
         public DynamicXmlSerializer()
         {
             _derivedType = DerivedType(typeof(T));
@@ -49,7 +68,7 @@ namespace DynamicXml
             if (hypotheticallyExistingType != null)
                 return hypotheticallyExistingType;
 
-            var iEnumerableInterface = t.GetInterfaces().FirstOrDefault(i => i.GetGenericTypeDefinition() == typeof(IEnumerable<>));
+            var iEnumerableInterface = t.GetInterfaces().FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEnumerable<>));
             if (iEnumerableInterface != null)
             {
                 var listedT = iEnumerableInterface.GetGenericArguments()[0];
@@ -112,12 +131,6 @@ namespace DynamicXml
             return result;
         }
 
-        public void Serialize(TextWriter textWriter, T instance)
-        {
-            object derivedInstance = CreateDerivedInstance(instance, _derivedType, _arguments[_derivedType]);
-            _staticSerializer.Serialize(textWriter, derivedInstance);
-        }
-
         // TODO Please cleanup a bit. This is a serious mess.
         private object CreateDerivedInstance(object instance, Type derivedType, Dictionary<string, string> toStringArguments)
         {
@@ -174,6 +187,11 @@ namespace DynamicXml
         private static bool IsBuiltinType(Type t)
         {
             return (t == typeof(object) || Type.GetTypeCode(t) != TypeCode.Object);
+        }
+
+        private static bool IsDotNetObject(Type t)
+        {
+            return t.FullName.StartsWith("System.");
         }
 
         private static bool IsIenumerable(Type t)
